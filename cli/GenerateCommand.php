@@ -171,9 +171,17 @@ class GenerateCommand extends ConsoleCommand {
     }
 
     $pageCount = count((array)$pages);
+    if ($pageCount == 0) {
+      $this->output->writeln('<red>ERROR</red> No pages were found');
+      die();
+    }
+    $this->paginated_pages = array();
+
     /* generate pages
     ----------------- */
-    if ($pageCount) {
+    $pageTotalCount = 0;
+    while ($pageCount !== 0) {
+      $pageTotalCount += $pageCount;
       $rollingCurl = new \RollingCurl\RollingCurl();
       foreach ($pages as $page) {
         $request = new \RollingCurl\Request($page['src_url']);
@@ -198,6 +206,8 @@ class GenerateCommand extends ConsoleCommand {
           pages($this->output, $request->bh_route, $request->bh_file_path, $request->grav_file_path, $grav_page_data_swapped, $request->force, $request->verbose);
           // generate assets
           if ($request->assets) assets($this->output, $request->event_horizon, $request->input_url, $grav_page_data, $request->force, $request->verbose);
+          // extract paginated pages
+          paginated($this->output, $request->input_url, $request->event_horizon, $this->paginated_pages, $grav_page_data_swapped);
           // clear list of completed requests and prune pending request queue to avoid memory growth
           $rollingCurl->clearCompleted();
           $rollingCurl->prunePendingRequestQueue();
@@ -205,16 +215,22 @@ class GenerateCommand extends ConsoleCommand {
         ->setSimultaneousLimit($request->simultaneous)
         ->execute()
       ;
-    } else {
-      $this->output->writeln('<red>ERROR</red> No pages were found');
-      die();
+
+      $pages = array();
+      foreach ($this->paginated_pages as $p_key => $p_value) {
+        if (!$p_value['absorbed']) {
+          $pages[] = $p_value;
+          $this->paginated_pages[$p_key]['absorbed'] = true;
+        }
+      }
+      $pageCount = count((array)$pages);
     }
 
     /* done
     ------- */
     $this->output->writeln(
       '⚫ Blackhole processed ' .
-      $pageCount . ' page' . ($pageCount !== 1 ? 's' : '') .
+      $pageTotalCount . ' page' . ($pageTotalCount !== 1 ? 's' : '') .
       ' in ' . (microtime(true) - $start) . ' seconds'
     );
   }

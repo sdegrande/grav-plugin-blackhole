@@ -118,6 +118,24 @@ function pages($that, $route, $path, $path_origin, $data, $force, $verbose) {
   }
 }
 
+// get list of paginated pages
+function paginated($that, $input_url, $event_horizon, &$pages, $data) {
+  $paginated_links = tidal_disruption($data, 'a', 'href');
+  foreach($paginated_links as $link) {
+    if (strpos($link, "page:") != 0) {
+      if (!array_key_exists($link, $pages)) {
+        $pages[$link] = [
+          'src_url' => $input_url . $link,
+          'src_file_path' => '', //used for checking timestamp,
+          'dst_route' => $event_horizon . $link,
+          'dst_file_path' => preg_replace('/\/\/+/', '/', $event_horizon . $link . '/index.html'),
+          'absorbed' => false
+        ];
+      }
+    }
+  }
+}
+
 // generate assets
 function assets($that, $event_horizon, $input_url, $data, $force, $verbose) {
   $asset_links = array();
@@ -129,11 +147,10 @@ function assets($that, $event_horizon, $input_url, $data, $force, $verbose) {
   $asset_links[] = tidal_disruption($data, 'object', 'data'); //also fetch references from objects
 
   foreach (array_flatten($asset_links) as $asset) {
-      if (str_ends_with($asset, '.css')) {
-        $asset_links[] = generateCssAssets($asset, $event_horizon);
-      }
+    if (str_ends_with($asset, '.css')) {
+      $asset_links[] = generateCssAssets($asset, $event_horizon);
     }
-
+  }
 
   $input_url_parts = parse_url($input_url);
   foreach (array_flatten($asset_links) as $asset) {
