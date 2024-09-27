@@ -42,7 +42,13 @@ function tidal_disruption($data, $elements, $attribute) {
   $doc = new \DOMDocument();
   @$doc->loadHTML($data);
   $links = array();
-  foreach($doc->getElementsByTagName($elements) as $element) {
+  if (str_starts_with($elements, '//')) {
+    $docpath = new \DOMXPath($doc);
+    $matching_elements = $docpath->query($elements);
+  } else {
+    $matching_elements = $doc->getElementsByTagName($elements);
+  }
+  foreach($matching_elements as $element) {
     if ($element->getAttribute('rel') !== 'canonical') {
       if ($attribute == 'srcset') {
         foreach (explode(' ', $element->getAttribute($attribute)) as $src) {
@@ -122,6 +128,7 @@ function pages($that, $route, $path, $path_origin, $data, $force, $verbose) {
 function assets($that, $event_horizon, $input_url, $data, $force, $verbose) {
   $asset_links = array();
   $asset_links[] = tidal_disruption($data, 'link', 'href');
+  $asset_links[] = tidal_disruption($data, '//a[@rel="lightbox"]', 'href');
   $asset_links[] = tidal_disruption($data, 'script', 'src');
   $asset_links[] = tidal_disruption($data, 'img', 'src');
   $asset_links[] = tidal_disruption($data, 'img', 'data-src'); //also fetch lazy loaded images
@@ -129,11 +136,10 @@ function assets($that, $event_horizon, $input_url, $data, $force, $verbose) {
   $asset_links[] = tidal_disruption($data, 'object', 'data'); //also fetch references from objects
 
   foreach (array_flatten($asset_links) as $asset) {
-      if (str_ends_with($asset, '.css')) {
-        $asset_links[] = generateCssAssets($asset, $event_horizon);
-      }
+    if (str_ends_with($asset, '.css')) {
+      $asset_links[] = generateCssAssets($asset, $event_horizon);
     }
-
+  }
 
   $input_url_parts = parse_url($input_url);
   foreach (array_flatten($asset_links) as $asset) {
