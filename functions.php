@@ -42,7 +42,13 @@ function tidal_disruption($data, $elements, $attribute) {
   $doc = new \DOMDocument();
   @$doc->loadHTML($data);
   $links = array();
-  foreach($doc->getElementsByTagName($elements) as $element) {
+  if (str_starts_with($elements, '//')) {
+    $docpath = new \DOMXPath($doc);
+    $matching_elements = $docpath->query($elements);
+  } else {
+    $matching_elements = $doc->getElementsByTagName($elements);
+  }
+  foreach($matching_elements as $element) {
     if ($element->getAttribute('rel') !== 'canonical') {
       if ($attribute == 'srcset') {
         foreach (explode(' ', $element->getAttribute($attribute)) as $src) {
@@ -140,6 +146,7 @@ function paginated($that, $input_url, $event_horizon, &$pages, $data) {
 function assets($that, $event_horizon, $input_url, $data, $force, $verbose) {
   $asset_links = array();
   $asset_links[] = tidal_disruption($data, 'link', 'href');
+  $asset_links[] = tidal_disruption($data, '//a[@rel="lightbox"]', 'href');
   $asset_links[] = tidal_disruption($data, 'script', 'src');
   $asset_links[] = tidal_disruption($data, 'img', 'src');
   $asset_links[] = tidal_disruption($data, 'img', 'data-src'); //also fetch lazy loaded images
