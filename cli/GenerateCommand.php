@@ -233,5 +233,7 @@ class GenerateCommand extends ConsoleCommand {
       $pageTotalCount . ' page' . ($pageTotalCount !== 1 ? 's' : '') .
       ' in ' . (microtime(true) - $start) . ' seconds'
     );
+
+    return 0;
   }
 }
